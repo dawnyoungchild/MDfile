@@ -193,3 +193,127 @@ plt.show()
 ~~~
 
 ![image-20240919170139447](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024091917013920240919170139.png)
+
+## 第2章 感知机
+
+### 2.1 感知机是什么
+
+感知机接收多个输入信号，输出一个信号。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092007523720240920075237.png" alt="image-20240920075230561" style="zoom:67%;" />
+
+上图是一个接收两个输入信号的感知机的例子。x1、x2是输入信号，y是输出信号，w1、w2是权重（w是weight的首字母）。图中的○称为“神经元”或者“节点”。输入信号被送往神经元时，会被分别乘以固定的权重(w1x1、w2x2)。神经元会计算传送过来的信号的总和，只有当这个总和超过了某个界限值时，才会输出1。这也称为“神经元被激活”。这里将这个界限值称为阈值，用符号θ表示。
+
+把上述内容用数学式来表示，就是式(2.1)
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092007571420240920075714.png" alt="image-20240920075714603" style="zoom:80%;" />
+
+### 2.2 简单逻辑电路
+
+#### 2.2.1 与门
+
+与门（AND gate）是有两个输入和一个输出的门电路。与门仅在两个输入均为1时输出1，其他时候则输出0。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092008022320240920080223.png" alt="image-20240920080223368" style="zoom:80%;" />
+
+​                                                                                                  **与门真值表**
+
+#### 2.2.2 与非门和或门
+
+与非门（NAND gate，NAND是Not AND的意思）就是颠倒了与门的输出。用真值表表示的话，仅当x1和x2同时为1时输出0。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092008064520240920080645.png" alt="image-20240920080645712" style="zoom:80%;" />
+
+​                                                                                                 **与非门真值表**
+
+或门是只要有一个输入信号是1，输出就为1的逻辑电路。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092008085220240920080852.png" alt="image-20240920080852426" style="zoom:80%;" />
+
+​                                                                                                   **或门真值表**
+
+### 2.3 感知机的实现
+
+#### 2.3.1 简单的实现
+
+~~~python
+def AND(x1, x2):
+    w1, w2, theta = 0.5, 0.5, 0.7
+    tmp =x1*w1 + x2*w2
+    if tmp <= theta:
+        return 0
+    elif tmp > theta:
+        return 1
+
+'''
+AND(0, 0) # 输出0
+AND(1, 0) # 输出0
+AND(0, 1) # 输出0
+AND(1, 1) # 输出1
+'''
+~~~
+
+#### 2.3.2 导入权重和偏置
+
+把式2.1中的θ换成-b，b称为偏置，w1和w2称为权重。感知机会计算输入信号和权重的乘积，然后加上偏置，如果这个值大于0则输出1，否则输出0。
+
+![image-20240920103242158](C:\Users\Dawn\AppData\Roaming\Typora\typora-user-images\image-20240920103242158.png)
+
+~~~python
+>>> import numpy as np
+>>> x = np.array([0, 1])     # 输入
+>>> w = np.array([0.5, 0.5]) # 权重
+>>> b = -0.7                 # 偏置
+>>> w*x
+array([ 0. , 0.5])
+>>> np.sum(w*x)
+0.5
+>>> np.sum(w*x) + b
+-0.19999999999999996   # 大约为-0.2（由浮点小数造成的运算误差）
+~~~
+
+#### 2.3.3 使用权重和偏置的实现
+
+~~~python
+# 使用权重和偏置实现与门
+import numpy as np
+
+def AND(x1, x2):
+    x = np.array([x1, x2])
+    w = np.array([0.5, 0.5])
+    b = -0.7
+    tmp = np.sum(w*x) + b
+    if tmp <= 0:
+        return 0
+    else:
+        return 1
+
+~~~
+
+w1和w2是**控制输入信号的重要性**的参数，而偏置b是调整神经元**被激活的容易程度**（输出信号为1的程度）的参数。
+
+~~~python
+# 实现与非门和或门
+def NAND(x1, x2):
+    x = np.array([x1, x2])
+    w = np.array([-0.5, -0.5]) # 仅权重和偏置与AND不同！
+    b = 0.7
+    tmp = np.sum(w*x) + b
+    if tmp <= 0:
+        return 0
+    else:
+        return 1
+
+def OR(x1, x2):
+    x = np.array([x1, x2])
+    w = np.array([0.5, 0.5]) # 仅权重和偏置与AND不同！
+    b = -0.2
+    tmp = np.sum(w*x) + b
+    if tmp <= 0:
+        return 0
+    else:
+        return 1
+~~~
+
+### 2.4 感知机的局限性
+
