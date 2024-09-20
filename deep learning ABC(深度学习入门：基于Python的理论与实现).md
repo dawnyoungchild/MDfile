@@ -257,7 +257,7 @@ AND(1, 1) # 输出1
 
 把式2.1中的θ换成-b，b称为偏置，w1和w2称为权重。感知机会计算输入信号和权重的乘积，然后加上偏置，如果这个值大于0则输出1，否则输出0。
 
-![image-20240920103242158](C:\Users\Dawn\AppData\Roaming\Typora\typora-user-images\image-20240920103242158.png)
+![image-20240920103242158](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015114520240920151145.png)
 
 ~~~python
 >>> import numpy as np
@@ -316,4 +316,62 @@ def OR(x1, x2):
 ~~~
 
 ### 2.4 感知机的局限性
+
+#### 2.4.1 异或门
+
+使用感知机可以实现与门、与非门、或门三种逻辑电路。
+
+异或门（XOR gate）也被称为逻辑异或电路。仅当x1或x2中的一方为1时，才会输出1。
+
+![image-20240920110821625](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015124020240920151240.png)
+
+感知机的局限性在于它只能表示由一条直线分割的空间。
+
+![image-20240920143927397](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015123520240920151235.png)
+
+![image-20240920144012598](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015123320240920151233.png)
+
+由曲线分割而成的空间称为**非线性空间**，由直线分割而成的空间称为**线性空间**。
+
+### 2.5 多层感知机
+
+#### 2.5.1 已有门电路的组合
+
+上节中，严格来说，应该是**单层感知机无法表示异或门**或者**单层感知机无法分离非线性空间**。
+
+![image-20240920150243231](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015122920240920151229.png)
+
+![image-20240920150306012](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015123220240920151232.png)
+
+如上图通过组合与门、与非门、或门可以实现异或门
+
+![image-20240920150346519](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015122420240920151224.png)
+
+​                                                                      **异或门的真值表**
+
+#### 2.5.2 异或门的实现
+
+~~~python
+# 结合前面定义的函数，定义新函数，实现异或门
+def XOR(x1, x2):
+    s1 = NAND(x1, x2)
+    s2 = OR(x1, x2)
+    y = AND(s1, s2)
+    return y
+~~~
+
+~~~python
+XOR(0, 0) # 输出0
+XOR(1, 0) # 输出1
+XOR(0, 1) # 输出1
+XOR(1, 1) # 输出0
+~~~
+
+使用感知机的方法表示异或门，如下图：
+
+![image-20240920151420018](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092015142020240920151420.png)
+
+与门、或门是**单层感知机**，而异或门是**2层感知机**。叠加了多层的感知机也称为**多层感知机**(multi-layered perceptron)。上图中的感知机总共由3层构成，但是因为拥有权重的层实质上只有2层（第0层和第1层之间，第1层和第2层之间），所以称为“2层感知机”。不过，有的文献认为图中的感知机是由3层构成的，因而将其称为“3层感知机”。
+
+### 2.6 从与非门到计算机
 
