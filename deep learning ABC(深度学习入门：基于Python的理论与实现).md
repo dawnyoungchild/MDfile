@@ -375,3 +375,275 @@ XOR(1, 1) # 输出0
 
 ### 2.6 从与非门到计算机
 
+感知机通过叠加层能够进行非线性的表示，理论上还可以表示计算机进行的处理。
+
+## 第3章 神经网络
+
+### 3.1 从感知机到神经网络
+
+#### 3.1.1 神经网络的例子
+
+神经网络和感知机有很多共同点。
+
+用图来表示神经网络的话，如下图所示。最左边的一列称为**输入层**，最右边的一列称为**输出层**，中间的一列称为**中间层**。中间层有时也称为**隐藏层**。“隐藏”一词的意思是，隐藏层的神经元（和输入层、输出层不同）肉眼看不见。输入层到输出层也依次称为第0层、第1层、第2层（层号之所以从0开始，是为了方便后面基于Python进行实现）。下图中，第0层对应输入层，第1层对应中间层，第2层对应输出层。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092311085420240923110854.png" alt="image-20240923110832935" style="zoom:80%;" />
+
+上图网络一共由3层神经元构成，但实质上只有2层神经元有权重，因此称其为2层网络。有的术会根据构成网络的层数，称其为3层网络。
+
+#### 3.1.2 复习感知机
+
+![image-20240923170510525](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092317051020240923170510.png)
+
+式3.1中，b为偏置参数，
+
+在上图中，b没有明确画出来。可以如下图这样明确表示b。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092317081520240923170815.png" alt="image-20240923170815841" style="zoom:80%;" />
+
+进而将式子3.1改写成式3.2
+
+y = h(b + w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub>)
+
+和
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092317100020240923171000.png" alt="image-20240923171000495" style="zoom: 50%;" />
+
+#### 3.1.3 激活函数登场
+
+h(x)函数会将输入信号的总和转换为输出信号，这种函数一般称为**激活函数**(activation function)。如“激活”一词所示，激活函数的作用在于**决定如何来激活输入信号的总和**。
+
+将式（3.2）y = h(b + w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub>)分解为式3.4和3.5：
+
+a = b + w<sub>1</sub>x<sub>1</sub> + w<sub>2</sub>x<sub>2</sub>		（3.4）
+
+y = h(a)							(3.5)
+
+首先，式(3.4)计算加权输入信号和偏置的总和，记为a。然后，式(3.5)用h()函数将a转换为输出y。
+
+通过下图可以明确式3.4和3.5的关系
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092317302420240923173024.png" alt="image-20240923173024608" style="zoom: 67%;" />
+
+### 3.2 激活函数
+
+式<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092317100020240923171000.png" alt="image-20240923171000495" style="zoom: 50%;" />表示的激活函数以阈值为界，一旦输入超过阈值，就切换输出。这样的函数称为“**阶跃函数**”。因此，可以说感知机中使用了阶跃函数作为激活函数。也就是说，在激活函数的众多候选函数中，感知机使用了阶跃函数。那么，如果感知机使用其他函数作为激活函数的话会怎么样呢？实际上，如果将激活函数从阶跃函数换成其他函数，就可以进入神经网络的世界了。下面我们就来介绍一下神经网络使用的激活函数。
+
+#### 3.2.1 sigmoid函数
+
+sigmoid函数（式3.6）是神经网络中经常使用的一个激活函数。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092317391920240923173919.png" alt="image-20240923173919266" style="zoom: 80%;" />
+
+exp(-x)表示e<sup>-x</sup>次方的意思。e是皮纳尔常数2.7182...
+
+神经网络中用sigmoid函数作为激活函数，进行信号的转换，转换后的信号被传送给下一个神经元。
+
+#### 3.2.2 阶跃函数的实现
+
+~~~python
+# 使用Python表示式3.3，输入超过0时，输出1，否则输出0
+def step_function(x):
+    if x > 0:
+        return 1
+    else:
+        return 0
+
+~~~
+
+以上函数只能接收实数而不能接收数组作为参数，对函数做一下修改让它支持NumPy数组的实现。
+
+~~~python
+import numpy as np
+def step_function(x):
+    y = x > 0
+    return y.astype(int)
+
+~~~
+
+对上述函数的分解
+
+~~~python
+>>> import numpy as np
+>>> x = np.array([-1.0, 1.0, 2.0])
+>>> x
+array([-1.,  1.,  2.])
+>>> y = x > 0	# 数组x中大于0的元素被转换为True，小于等于0的元素被转换为False，从而生成一个新的数组y。
+>>> y
+array([False,  True,  True], dtype=bool)
+'''
+用astype()方法转换NumPy数组的类型。astype()方法通过参数指定期望的类型，这个例子中是np.int型。Python中将布尔型转换为int型后，True会转换为1，False会转换为0。
+'''
+>>> y = y.astype(int)
+>>> y
+array([0, 1, 1])
+~~~
+
+#### 3.2.3 阶跃函数的图形
+
+~~~python
+# 画出上面定义的阶跃函数的图形
+import numpy as np
+import matplotlib.pylab as plt
+
+def step_function(x):
+    return np.array(x > 0, dtype=int)
+
+x = np.arange(-5.0, 5.0, 0.1)   # 生成从-5.0到5.0，以0.1为阶长的数组
+y = step_function(x)
+plt.plot(x, y)
+plt.ylim(-0.1, 1.1)  # 指定y轴的范围
+plt.show()
+
+~~~
+
+![image-20240924144410631](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092414441720240924144417.png)
+
+阶跃函数以0为界，输出从0切换为1（或者从1切换为0）。它的值呈阶梯式变化，所以称为阶跃函数。
+
+#### 3.2.4 sigmoid函数的实现
+
+~~~python
+# 使用python定义sigmoid函数
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+~~~
+
+~~~python
+# 把sigmoid函数画在图上
+import numpy as np
+import matplotlib.pylab as plt
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+x = np.arange(-5.0, 5.0, 0.1)   # 生成从-5.0到5.0，以0.1为阶长的数组
+y = sigmoid(x)
+plt.plot(x, y)
+plt.ylim(-0.1, 1.1)  # 指定y轴的范围
+plt.show()
+
+~~~
+
+![image-20240924150155420](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092415015520240924150155.png)
+
+#### 3.2.5 sigmoid函数和阶跃函数的比较
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092415024420240924150244.png" alt="image-20240924150244203" style="zoom:67%;" />
+
+1、sigmoid函数输出是平滑的曲线，输出随着输入发生连续性变化；阶跃函数以0为界，输出发生急剧性变化。
+
+2、感知机中神经元之间流动的是0或1的二元信号，而神经网络中流动的是连续的实数值信号。
+
+3、当输入信号为重要信息时，阶跃函数和sigmoid函数都会输出较大的值；当输入信号为不重要的信息时，两者都输出较小的值。还有一个共同点是，不管输入信号有多小，或者有多大，输出信号的值都在0到1之间。
+
+#### 3.2.6 非线性函数
+
+函数本来是输入某个值后会返回一个值的转换器。向这个转换器输入某个值后，**输出值是输入值的常数倍的函数称为线性函数**（用数学式表示为h(x) = cx。c为常数）。因此，线性函数是一条笔直的直线。而非线性函数，顾名思义，指的是不像线性函数那样呈现出一条直线的函数。
+
+神经网络的激活函数**必须使用非线性函数**。
+
+#### 3.2.7 ReLU函数
+
+ReLU函数在输入大于0时，直接输出该值；在输入小于等于0时，输出0。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092417013020240924170130.png" alt="image-20240924163310644" style="zoom:67%;" />
+
+ReLU函数可以用下式表示
+
+![image-20240924165128063](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092417012620240924170126.png)
+
+~~~python
+# python实现ReLU函数
+def relu(x):
+    return np.maximum(0, x)		# maximum函数会从输入的数值中选择较大的那个值进行输出。
+
+~~~
+
+### 3.3 多维数组的运算
+
+#### 3.3.1 多维数组
+
+~~~python
+# A、B分别为一维数组和二维数组
+>>> import numpy as np
+>>> A = np.array([1, 2, 3, 4])
+>>> print(A)
+[1 2 3 4]
+# 获取数组维数
+>>> np.ndim(A)
+1
+# 获取数组元素个数，返回元组
+>>> A.shape
+(4,)
+>>> A.shape[0]
+4
+
+>>> B = np.array([[1,2], [3,4], [5,6]])
+>>> print(B)
+[[1 2]
+ [3 4]
+ [5 6]]
+>>> np.ndim(B)
+2
+>>> B.shape
+(3, 2)
+~~~
+
+数组B是3*2的数组，第一维度有3个元素，第二维度有2个元素。第一个维度对应第0维，第二个维度对应第1维（Python的索引从0开始）。二维数组也称为矩阵(matrix)。如下图所示，数组的横向排列称为行(row)，纵向排列称为列(column)。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092417540020240924175400.png" alt="image-20240924175400669" style="zoom:67%;" />
+
+#### 3.3.2 矩阵乘法
+
+![image-20240924175726138](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092417572620240924175726.png)
+
+~~~python
+# python实现2*2矩阵相乘
+>>> A = np.array([[1,2],[3,4]])
+>>> B = np.array([[5,6],[7,8]])
+>>> np.dot(A,B)
+array([[19, 22],
+       [43, 50]])
+>>> np.dot(B,A)
+array([[23, 34],
+       [31, 46]])
+
+~~~
+
+要注意的是，**np.dot(A, B)和np.dot(B, A)的值可能不一样**。和一般的运算（+或*等）不同，矩阵的乘积运算中，操作数(A、B)的顺序不同，结果也会不同。
+
+计算矩阵A和B的乘积，**A的第1维元素个数（列数）和B的第0维元素个数（行数）必须相等**，否则运算会出现错误。
+
+~~~python
+>>> A = np.array([[1,2,3],[4,5,6]])
+>>> A.shape
+(2, 3)
+>>> B = np.array([[7,8],[9,10]])
+>>> B.shape
+(2, 2)
+>>> np.dot(A,B)
+Traceback (most recent call last):	# A列为3，B行为2，所以运算AB乘积出现错误
+  File "<pyshell#9>", line 1, in <module>
+    np.dot(A,B)
+  File "<__array_function__ internals>", line 200, in dot
+ValueError: shapes (2,3) and (2,2) not aligned: 3 (dim 1) != 2 (dim 0)
+>>> np.dot(B,A)	 # B列为2，A行为2，所以可以运算BA乘积
+array([[39, 54, 69],
+       [49, 68, 87]])
+
+~~~
+
+![image-20240927104047423](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092710404720240927104047.png)
+
+由上图可以看出，A矩阵1维（列）与B矩阵0维（行）必须相等，而且运算结果**矩阵C的形状由A的0维（行）和B的1维（列）构成**。
+
+![image-20240927104021962](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024092710402220240927104022.png)
+
+当A是二维矩阵，B是一维数组时，对应维度的元素个数保持一致的原则依然成立。
+
+#### 3.3.3 神经网络的内积
+
+
+
