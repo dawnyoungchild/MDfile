@@ -724,3 +724,292 @@ print(A1)
 '''
 ~~~
 
+![image-20240930075849260](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093007585620240930075856.png)
+
+上图3-18为**从输入层到第1层的信号传递**
+
+a表示隐藏层的加权和（加权信号和偏置的总和）
+
+z表示激活函数转换后的信号
+
+h()表示激活函数，此处用sigmoid函数，使用Python实现如下
+
+~~~python
+import numpy as np
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+X = np.array([1.0, 0.5])
+W1 = np.array([[0.1, 0.3, 0.5], [0.2, 0.4, 0.6]])
+B1 = np.array([0.1, 0.2, 0.3])
+A1 = np.dot(X, W1) + B1
+
+Z1 = sigmoid(A1)
+print(Z1)
+
+'''
+[0.57444252 0.66818777 0.75026011]
+'''
+~~~
+
+![image-20240930080432843](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093008043220240930080432.png)
+
+上图3-19为**第1层到第2层的信号传递**
+
+~~~python
+# Python实现第1层到第2层的传递，参数仍设置为任意值
+W2 = np.array([[0.1, 0.4], [0.2, 0.5], [0.3, 0.6]])
+B2 = np.array([0.1, 0.2])
+
+print(Z1.shape) # (3,)
+print(W2.shape) # (3, 2)
+print(B2.shape) # (2,)
+
+A2 = np.dot(Z1, W2) + B2
+Z2 = sigmoid(A2)
+print(Z2)	# [0.62624937 0.7710107 ]
+~~~
+
+这一传递的实现跟上一个传递的实现基本一样
+
+![image-20240930081401085](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093008140120240930081401.png)
+
+上图3-20为**第2层到输出层的信号传递**
+
+输出层的实现也和之前的实现基本相同，但是**最后的激活函数（σ()）与之前的隐藏层（h()）不同**。
+
+~~~python
+'''
+定义输出层的激活函数identity_function()函数（也称为“恒等函数”），恒等函数会将输入按原样输出。
+'''
+def identity_function(x):
+    return x
+
+W3 = np.array([[0.1, 0.3], [0.2, 0.4]])
+B3 = np.array([0.1, 0.2])
+
+A3 = np.dot(Z2, W3) + B3
+Y = identity_function(A3) # 或者Y = A3
+~~~
+
+**输出层所用的激活函数，要根据求解问题的性质决定。**一般地，回归问题可以使用恒等函数，二元分类问题可以使用sigmoid函数，多元分类问题可以使用softmax函数。
+
+#### 3.4.3 代码实现小结
+
+按照神经网络的实现惯例，权重记为大写字母W1，其他的（偏置或中间结果等）都用小写字母表示。
+
+~~~python
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def identity_function(x):
+    return x
+
+def init_network():
+    network = {}
+    network['W1'] = np.array([[0.1, 0.3, 0.5], [0.2, 0.4, 0.6]])
+    network['b1'] = np.array([0.1, 0.2, 0.3])
+    network['W2'] = np.array([[0.1, 0.4], [0.2, 0.5], [0.3, 0.6]])
+    network['b2'] = np.array([0.1, 0.2])
+    network['W3'] = np.array([[0.1, 0.3], [0.2, 0.4]])
+    network['b3'] = np.array([0.1, 0.2])
+
+    return network
+
+def forward(network, x):
+    W1, W2, W3 = network['W1'], network['W2'], network['W3']
+    b1, b2, b3 = network['b1'], network['b2'], network['b3']
+
+    a1 = np.dot(x, W1) + b1
+    z1 = sigmoid(a1)
+    a2 = np.dot(z1, W2) + b2
+    z2 = sigmoid(a2)
+    a3 = np.dot(z2, W3) + b3
+    y = identity_function(a3)
+
+    return y
+
+network = init_network()
+x = np.array([1.0, 0.5])
+y = forward(network, x)
+print(y) # [0.31682708 0.69627909]
+
+~~~
+
+### 3.5 输出层的设计
+
+机器学习的问题大致可以分为**分类问题**和**回归问题**。分类问题是数据属于哪一个类别的问题。比如，区分图像中的人是男性还是女性的问题就是分类问题。而回归问题是根据某个输入预测一个（连续的）数值的问题。比如，根据一个人的图像预测这个人的体重的问题就是回归问题（类似“57.4kg”这样的预测）。
+
+神经网络可以用在分类问题和回归问题上，不过需要根据情况改变输出层的激活函数。一般而言，**回归问题用恒等函数，分类问题用softmax函数**。
+
+#### 3.5.1 恒等函数和softmax函数
+
+恒等函数会将输入按原样输出，对于输入的信息，不加以任何改动地直接输出。
+
+softmax函数表达式
+
+![image-20240930103118564](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093010311820240930103118.png)
+
+其中，exp(x)是表示e<sup>x</sup>的指数函数（e是纳皮尔常数2.7182 ...）
+
+式(3.10)表示假设输出层共有n个神经元，计算第k个神经元的输出y<sub>k</sub>。如式(3.10)所示，softmax函数的分子是输入信号[插图]的指数函数，分母是所有输入信号的指数函数的和。
+
+用图表示softmax函数如下（3-22）：
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093010501220240930105012.png" alt="image-20240930105012779" style="zoom:67%;" />
+
+softmax函数的输出通过箭头与所有的输入信号相连。这是因为，从式(3.10)可以看出，**输出层的各个神经元都受到所有输入信号的影响**。
+
+~~~python
+# 解释器确认softmax函数
+>>> a = np.array([0.3, 2.9, 4.0])
+>>>
+>>> exp_a = np.exp(a) # 指数函数
+>>> print(exp_a)
+[  1.34985881  18.17414537  54.59815003]
+>>>
+>>> sum_exp_a = np.sum(exp_a) # 指数函数的和
+>>> print(sum_exp_a)
+74.1221542102
+>>>
+>>> y = exp_a / sum_exp_a
+>>> print(y)
+[ 0.01821127  0.24519181  0.73659691]
+
+~~~
+
+~~~python
+# 定义softmax函数
+def softmax(a):
+    exp_a = np.exp(a)
+    sum_exp_a = np.sum(exp_a)
+    y = exp_a / sum_exp_a
+    
+    return y
+
+~~~
+
+#### 3.5.2 实现softmax函数时的注意事项
+
+溢出问题：softmax函数的实现中要进行指数函数的运算，但是此时指数函数的值很容易变得非常大。e<sup>100</sup>的值超过40位，而e<sup>1000</sup>直接返回表示无穷大的inf。
+
+计算机处理“数”时，数值必须在**4字节或8字节**的有限数据宽度内。这意味着数存在**有效位数**，也就是说，可以表示的数值范围是有限的。因此，会出现超大值无法表示的问题。这个问题称为**溢出**，在进行计算机的运算时必须注意。
+
+对softmax函数的改进（3.11）：
+
+![image-20240930110725469](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093011072520240930110725.png)
+
+首先，式(3.11)在分子和分母上都乘上C这个任意的常数（因为同时对分母和分子乘以相同的常数，所以计算结果不变）。然后，把这个C移动到指数函数(exp)中，记为log C。最后，把log C替换为另一个符号C'。
+
+式(3.11)说明，在进行softmax的指数函数的运算时，**加上（或者减去）某个常数并不会改变运算的结果**。这里的C'可以使用任何值，但是为了防止溢出，一般会**使用输入信号中的最大值**。
+
+~~~python
+>>> a = np.array([1010, 1000, 990])
+>>> np.exp(a) / np.sum(np.exp(a)) # softmax函数的运算
+array([ nan,  nan,  nan])         # 没有被正确计算
+>>>
+>>> c = np.max(a) # 1010
+>>> a - c
+array([  0, -10, -20])
+>>>
+>>> np.exp(a - c) / np.sum(np.exp(a - c))
+array([  9.99954600e-01,   4.53978686e-05,   2.06106005e-09])
+'''
+通过减去输入信号中的最大值(上面的c)，原本不能正常计算的地方（nan）可以正确计算了。
+'''
+~~~
+
+~~~python
+# 由上面解释器的结果，我们可以优化softtmax函数
+def softmax(a):
+    c = np.max(a)
+    exp_a = np.exp(a - c) # 溢出对策
+    sum_exp_a = np.sum(exp_a)
+    y = exp_a / sum_exp_a
+
+    return y
+
+~~~
+
+#### 3.5.3 softmax函数的特征
+
+~~~python
+>>> a = np.array([0.3, 2.9, 4.0])
+>>> y = softmax(a)	# 上节定义的softmax函数
+>>> print(y)
+[ 0.01821127  0.24519181  0.73659691]
+>>> np.sum(y)
+1.0
+
+~~~
+
+由上面的代码可见：
+
+1. softmax函数的输出是0.0到1.0之间的实数
+2. softmax函数的输出值的总和是1
+
+输出总和为1是softmax函数的一个重要性质。正因为有了这个性质，我们才可以把softmax函数的输出解释为“**概率**”。
+
+上面的例子可以解释成y[0]的概率是0.018(1.8%)，y[1]的概率是0.245(24.5%)，y[2]的概率是0.737(73.7%)。从概率的结果来看，可以说“因为第2个元素的概率最高，所以答案是第2个类别”。或者说上面的例子可以解释成y[0]的概率是0.018(1.8%)，y[1]的概率是0.245(24.5%)，y[2]的概率是0.737(73.7%)。从概率的结果来看，可以说“因为第2个元素的概率最高，所以答案是第2个类别”。也就是说，通过使用softmax函数，我们可以用概率的（统计的）方法处理问题。
+
+#### 3.5.4 输出层的神经元数量
+
+输出层的神经元数量需要根据待解决的问题来决定。对于分类问题，**输出层的神经元数量一般设定为类别的数量**。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093014374620240930143746.png" alt="image-20240930143746440" style="zoom:67%;" />
+
+### 3.6 手写数字识别
+
+和求解机器学习问题的步骤（分成学习和推理两个阶段进行）一样，使用神经网络解决问题时，也需要首先使用训练数据（学习数据）进行**权重参数**的学习；进行推理时，使用刚才学习到的参数，对输入数据进行分类。
+
+#### 3.6.1 MNIST数据集
+
+MNIST是机器学习领域最有名的数据集之一，被应用于从简单的实验到发表的论文研究等各种场合。
+
+MNIST数据集是由0到9的数字图像构成的。训练图像有6万张，测试图像有1万张，这些图像可以用于学习和推理。MNIST数据集的一般使用方法是，先用训练图像进行学习，再用学习到的模型度量能在多大程度上对测试图像进行正确的分类。
+
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093015041820240930150418.png" alt="image-20240930150418117" style="zoom:67%;" />
+
+下载源码和训练测试文件
+
+源码中的load_mnist函数以“（训练图像,训练标签），（测试图像,测试标签）”的形式返回读入的MNIST数据，还可以设置load_mnist(normalize=True, flatten=True,one_hot_label=False)三个参数。
+
+- normalize：设置是否将输入图像正规化为0.0~1.0的值。设置为False则输入图像像素保持原来的0~255
+- flatten：是否展开输入图像。设置为False则输入图像为1✖28✖28的三维数组；设置为True则输入图像会保存为由784个元素构成的一维数组
+- one_hot_label：设置是否将标签保存为one-hot表示(one-hot representation)。one-hot表示是仅正确解标签为1，其余皆为0的数组，就像[0,0,1,0,0,0,0,0,0,0]这样。当one_hot_label为False时，只是像7、2这样简单保存正确解标签；当one_hot_label为True时，标签则保存为one-hot表示。
+
+Python有pickle这个便利的功能。这个功能可以将程序运行中的对象保存为文件。如果加载保存过的pickle文件，可以立刻复原之前程序运行中的对象。用于读入MNIST数据集的load_mnist()函数内部也使用了pickle功能（在第2次及以后读入时）。利用pickle功能，可以高效地完成MNIST数据的准备工作。
+
+~~~python
+# 使用Python的PIL模块显示图像，同时确认一下数据
+import sys, os
+sys.path.append(os.pardir)
+import numpy as np
+from dataset.mnist import load_mnist
+from PIL import Image
+
+def img_show(img):
+    pil_img = Image.fromarray(np.uint8(img))
+    pil_img.show()
+
+(x_train, t_train), (x_test, t_test) = load_mnist(flatten=True,
+normalize=False)
+img = x_train[0]
+label = t_train[0]
+print(label) # 9
+
+print(img.shape)          # (784,)
+img = img.reshape(28, 28) # 把图像的形状变成原来的尺寸
+print(img.shape)          # (28, 28)
+
+img_show(img)
+
+~~~
+
+![image-20240930163457893](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093016345820240930163458.png)
+
+flatten=True时读入的图像是以一列（一维）NumPy数组的形式保存的。因此，显示图像时，需要把它变为原来的28像素×28像素的形状。可以**通过reshape()方法的参数指定期望的形状**，更改NumPy数组的形状。此外，还需要把保存为NumPy数组的图像数据转换为PIL用的数据对象，这个转换处理由Image.fromarray()来完成。
+
+#### 3.6.2 神经网络的推理处理
+
