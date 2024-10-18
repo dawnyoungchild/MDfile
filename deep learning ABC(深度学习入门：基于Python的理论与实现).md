@@ -990,13 +990,16 @@ from dataset.mnist import load_mnist
 from PIL import Image
 
 def img_show(img):
-    pil_img = Image.fromarray(np.uint8(img))
+    pil_img = Image.fromarray(np.uint8(img))	# 把保存为NumPy数组的图像数据转换为PIL用的数据对象
     pil_img.show()
 
+'''
+x_train是mnist数据的训练图像，共有60000张28*28像素的图片组成。因此x_train[0]是取这60000张图片的第一张
+'''
 (x_train, t_train), (x_test, t_test) = load_mnist(flatten=True,
 normalize=False)
-img = x_train[0]
-label = t_train[0]
+img = x_train[0]	# 获取mnist数据组的第一张训练图像
+label = t_train[0]	# 获取第一张图像的标签
 print(label) # 9
 
 print(img.shape)          # (784,)
@@ -1007,9 +1010,310 @@ img_show(img)
 
 ~~~
 
-![image-20240930163457893](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093016345820240930163458.png)
+<img src="https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024093016345820240930163458.png" alt="image-20240930163457893" style="zoom:67%;" />
 
 flatten=True时读入的图像是以一列（一维）NumPy数组的形式保存的。因此，显示图像时，需要把它变为原来的28像素×28像素的形状。可以**通过reshape()方法的参数指定期望的形状**，更改NumPy数组的形状。此外，还需要把保存为NumPy数组的图像数据转换为PIL用的数据对象，这个转换处理由Image.fromarray()来完成。
 
 #### 3.6.2 神经网络的推理处理
+
+MNIST数据集的神经网络输入层有784个神经元，输出层有10个神经元。
+
+784这个数字来源于图像大小的28*28=784
+
+10这个数字来源于10类被分类（数字0到9，共10类别）
+
+此外，这个神经网络有2个隐藏层，第1个隐藏层有50个神经元，第2个隐藏层有100个神经元。这个50和100可以设置为任何值。
+
+~~~python
+def get_data():
+    (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, flatten=True, one_hot_label=False)
+    return x_test, t_test
+
+'''
+init_network()会读入保存在pickle文件sample_weight.pkl中的学习到的权重参数,这个文件中以字典变量的形式保存了权重和偏置参数。
+'''
+def init_network():
+    with open('sample_weight.pkl', 'rb') as f:
+        network = pickle.load(f)
+
+    return network
+
+def pridict(network, x):
+    W1, W2, W3 = network['W1'], network['W2'], network['W3']
+    b1, b2, b3 = network['b1'], network['b2'], network['b3']
+    a1 = np.dot(x, W1) + b1
+    z1 = sigmoid(a1)
+    a2 = np.dot(z1, W2) + b2
+    z2 = sigmoid(a2)
+    a3 = np.dot(z2, W1) + b3
+    y = softmax(a3)
+
+    return y
+~~~
+
+以上3个函数实现神经网络的推理处理。然后，评价它的识别精度(accuracy)，即能在多大程度上正确分类。
+
+~~~python
+'''
+首先获得MNIST数据集，生成网络。接着，用for语句逐一取出保存在x中的图像数据，用predict()函数进行分类。predict()函数以NumPy数组的形式输出各个标签对应的概率。比如输出[0.1, 0.3, 0.2, ..., 0.04]的数组，该数组表示“0”的概率为0.1，​“1”的概率为0.3，等等。然后，我们取出这个概率列表中的最大值的索引（第几个元素的概率最高）​，作为预测结果。可以用np.argmax(x)函数取出数组中的最大值的索引，np.argmax(x)将获取被赋给参数x的数组中的最大值元素的索引。最后，比较神经网络所预测的答案和正确解标签，将回答正确的概率作为识别精度。
+'''
+'''
+在这个例子中，我们把load_mnist函数的参数normalize设置成了True。将normalize设置成True后，函数内部会进行转换，将图像的各个像素值除以255，使得数据的值在0.0～1.0的范围内。像这样把数据限定到某个范围内的处理称为正规化(normalization)。
+'''
+x, t = get_data()
+network = init_network()
+
+accuracy_cnt = 0
+for i in range(len(x)):
+    y = pridict(network, x[i])
+    p = np.argmax(y)	# 获取概率最高的元素的索引
+    if p == t[i]:
+        accuracy_cnt += 1
+
+print('Accuracy:' + str(float(accuracy_cnt) / len(x)))  # Accuracy:0.0937
+
+~~~
+
+#### 3.6.3 批处理
+
+~~~python
+>>> x, _ = get_data()
+>>> network = init_network()
+>>> W1, W2, W3 = network['W1'], network['W2'], network['W3']
+>>>
+>>> x.shape
+(10000, 784)
+>>> x[0].shape
+(784,)
+>>> W1.shape
+(784, 50)
+>>> W2.shape
+(50, 100)
+>>> W3.shape
+(100, 10)
+
+~~~
+
+从上述结果来看，多维数组的对应维度的元素个数确实是一致的。我们还可以确认最终的输出结果是一个元素个数为10的一维数组。
+
+![image-20241002155806173](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024100215580620241002155806.png)
+
+从整体的处理流程来看，输入一个由784个元素（原本是一个28×28的二维数组）构成的一维数组后，输出一个有10个元素的一维数组。这是只输入一张图像数据时的处理流程。
+
+用predict()函数一次性打包处理100张图像。为此，可以把x的形状改为100×784，将100张图像打包作为输入数据。如下图所示
+
+![image-20241002160128394](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024100216012820241002160128.png)
+
+输入数据的形状为100×784，输出数据的形状为100×10。这表示输入的100张图像的结果被一次性输出了。比如，x[0]和y[0]中保存了第0张图像及其推理结果。
+
+~~~python
+# 基于批处理的代码实现
+x, t = get_data()
+network = init_network()
+
+batch_size = 100 # 批数量
+accuracy_cnt = 0
+
+for i in range(0, len(x), batch_size):
+    x_batch = x[i:i+batch_size]
+    y_batch = predict(network, x_batch)
+    p = np.argmax(y_batch, axis=1)
+    accuracy_cnt += np.sum(p == t[i:i+batch_size])
+
+~~~
+
+range()函数若指定为range(start, end)，则会生成一个由start到end-1之间的整数构成的列表。若像range(start, end, step)这样指定3个整数，则生成的列表中的下一个元素会增加step指定的值。
+
+~~~python
+>>> list( range(0, 10) )
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+>>> list( range(0, 10, 3) )
+[0, 3, 6, 9]
+~~~
+
+在range()函数生成的列表的基础上，通过x[i:i+batch_size]从输入数据中抽出批数据。x[i:i+batch_n]会取出从第i个到第i+batch_n个之间的数据。本例中是像x[0:100]、x[100:200]……这样，从头开始以100为单位将数据提取为批数据。
+
+然后，通过argmax()获取值最大的元素的索引。不过这里需要注意的是，我们给定了参数axis=1。这指定了在100×10的数组中，沿着第1维方向（以第1维为轴）找到值最大的元素的索引（第0维对应第1个维度）[插图]。这里也来看一个例子。
+
+~~~python
+>>> x = np.array([[0.1, 0.8, 0.1], [0.3, 0.1, 0.6],
+...     [0.2, 0.5, 0.3], [0.8, 0.1, 0.1]])
+>>> y = np.argmax(x, axis=1)
+>>> print(y)
+[1 2 1 0]
+~~~
+
+最后，我们比较一下以批为单位进行分类的结果和实际的答案。为此，需要在NumPy数组之间使用比较运算符(==)生成由True/False构成的布尔型数组，并计算True的个数。我们通过下面的例子进行确认。
+
+~~~python
+>>> y = np.array([1, 2, 1, 0])
+>>> t = np.array([1, 2, 0, 0])
+>>> print(y==t)
+[True True False True]
+>>> np.sum(y==t)
+3
+~~~
+
+## 第4章 神经网络的学习
+
+这里所说的“学习”是指从训练数据中自动获取最优权重参数的过程。
+
+### 4.1 从数据中学习
+
+神经网络的特征就是可以从数据中学习。所谓“从数据中学习”，是指可以由数据自动决定权重参数的值。
+
+#### 4.1.1 数据驱动
+
+![image-20241009145146242](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024100914515320241009145153.png)
+
+如何识别数字5
+
+![image-20241009153354164](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024100915335420241009153354.png)
+
+上图表示从人工设计规则转变为由机器从数据中学习：没有人为介入的方块用灰色表示
+
+#### 4.1.2 训练数据和测试数据
+
+使用训练数据进行学习，寻找最优的参数；
+
+使用测试数据评价训练得到的模型的实际能力。
+
+为什么需要将数据分为训练数据和测试数据呢？因为我们追求的是模型的**泛化能力**。为了正确评价模型的泛化能力，就必须划分训练数据和测试数据。另外，训练数据也可以称为**监督数据**。
+
+**泛化能力**是指处理未被观察过的数据（不包含在训练数据中的数据）的能力。
+
+### 4.2 损失函数
+
+神经网络的学习中所用的指标称为**损失函数**(loss function)。这个损失函数可以使用任意函数，但一般用**均方误差**和**交叉熵误差**等。
+
+损失函数是表示神经网络性能的“恶劣程度”的指标，即当前的神经网络对监督数据在多大程度上不拟合，在多大程度上不一致。
+
+#### 4.2.1 均方误差
+
+![image-20241009154141082](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024100915414120241009154141.png)
+
+y<sub>k</sub>表示神经网络的输出，t<sub>k</sub>表示监督数据，k表示数据的维数。
+
+在3.6节手写数字识别的例子中，y<sub>k</sub>、t<sub>k</sub>是由如下10个元素构成的数据
+
+~~~python
+>>> y = [0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0]
+>>> t = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+~~~
+
+数组元素的索引从第一个开始依次对应数字“0”“1”“2”……这里，神经网络的输出y是softmax函数的输出。由于softmax函数的输出可以理解为概率，因此上例表示“0”的概率是0.1，“1”的概率是0.05，“2”的概率是0.6等。t是监督数据，将正确解标签设为1，其他均设为0。这里，标签“2”为1，表示正确解是“2”。将正确解标签表示为1，其他标签表示为0的表示方法称为**one-hot**表示。
+
+~~~python
+# 使用Python实现均方误差函数
+def mean_squared_error(y, t):
+    return 0.5 * np.sum((y-t)**2)
+~~~
+
+~~~python
+>>> # 设“2”为正确解
+>>> t = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+>>>
+>>> # 例1：“2”的概率最高的情况（0.6）
+>>> y = [0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0]
+>>> mean_squared_error(np.array(y), np.array(t))
+0.097500000000000031
+>>>
+>>> # 例2：“7”的概率最高的情况（0.6）
+>>> y = [0.1, 0.05, 0.1, 0.0, 0.05, 0.1, 0.0, 0.6, 0.0, 0.0]
+>>> mean_squared_error(np.array(y), np.array(t))
+0.59750000000000003
+'''
+这里举了两个例子。第一个例子中，正确解是“2”​，神经网络的输出的最大值是“2”​；第二个例子中，正确解是“2”​，神经网络的输出的最大值是“7”​。如实验结果所示，我们发现第一个例子的损失函数的值更小，和监督数据之间的误差较小。也就是说，均方误差显示第一个例子的输出结果与监督数据更加吻合。
+'''
+~~~
+
+#### 4.2.2 交叉熵误差
+
+![image-20241010073446162](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024101007345320241010073453.png)
+
+log表示以e为底数的自然对数log<sub>e</sub>。y<sub>k</sub>是神经网络的输出，t<sub>k</sub>是**正确解标签**。
+
+t<sub>k</sub>中只有正确解标签的索引为1，其他均为0（one-hot表示）。
+
+因此，式(4.2)实际上只计算对应正确解标签的输出的自然对数。比如，假设正确解标签的索引是“2”，与之对应的神经网络的输出是0.6，则交叉熵误差是-log 0.6 = 0.51；若“2”对应的输出是0.1，则交叉熵误差为-log 0.1 = 2.30。也就是说，交叉熵误差的值是由正确解标签所对应的输出结果决定的。
+
+![image-20241010081903614](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024101008190320241010081903.png)
+
+上图为自然对数y=logx的图像，x等于1时，y为0；随着x向0靠近，y逐渐变小。因此，正确解标签对应的输出越大，式(4.2)的值越接近0；当输出为1时，交叉熵误差为0。此外，如果正确解标签对应的输出较小，则式(4.2)的值较大。
+
+~~~python
+# 代码实现交叉熵误差
+def cross_entropy_error(y, t):
+    delta = 1e-7
+    return -np.sum(t * np.log(y+delta))
+~~~
+
+这里，参数y和t是NumPy数组。函数内部在计算np.log时，加上了一个微小值delta。这是因为，当出现np.log(0)时，np.log(0)会变为负无限大的-inf，这样一来就会导致后续计算无法进行。作为保护性对策，添加一个微小值可以防止负无限大的发生。
+
+~~~python
+# 使用cross_entropy_error(y, t)进行一些简单的计算
+>>> t = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+>>> y = [0.1, 0.05, 0.6, 0.0, 0.05, 0.1, 0.0, 0.1, 0.0, 0.0]
+>>> cross_entropy_error(np.array(y), np.array(t))
+0.51082545709933802
+>>>
+>>> y = [0.1, 0.05, 0.1, 0.0, 0.05, 0.1, 0.0, 0.6, 0.0, 0.0]
+>>> cross_entropy_error(np.array(y), np.array(t))
+2.3025840929945458
+~~~
+
+第一个例子中，正确解标签对应的输出为0.6，此时的交叉熵误差大约为0.51。第二个例子中，正确解标签对应的输出为0.1的低值，此时的交叉熵误差大约为2.3。
+
+#### 4.2.3 mini-batch学习
+
+机器学习使用训练数据进行学习。使用训练数据进行学习，严格来说，就是**针对训练数据计算损失函数的值**，找出**使该值尽可能小**的参数。因此，计算损失函数时必须将所有的训练数据作为对象。也就是说，如果训练数据有100个的话，我们就要把这100个损失函数的总和作为学习的指标。
+
+前面介绍的损失函数的例子中考虑的都是针对单个数据的损失函数。如果要求所有训练数据的损失函数的总和，以交叉熵误差为例，可以写成下面的式(4.3)。
+
+![image-20241012103852028](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024101210385920241012103859.png)
+
+这里，假设数据有N个，t<sub>nk</sub>表示第n个数据的第k个元素的值（y<sub>nk</sub>是神经网络的输出，t<sub>nk</sub>是监督数据）。
+
+MNIST数据集的训练数据有60000个，如果以全部数据为对象求损失函数的和，则计算过程需要花费较长的时间。再者，如果遇到大数据，数据量会有几百万、几千万之多，这种情况下以全部数据为对象计算损失函数是不现实的。因此，我们从全部数据中选出一部分，作为全部数据的“近似”。神经网络的学习也是**从训练数据中选出一批数据**（称为**mini-batch,小批量**），然后对每个mini-batch进行学习。比如，从60000个训练数据中**随机选择**100笔，再用这100笔数据进行学习。这种学习方式称为mini-batch学习。
+
+~~~python
+# 随机选定指定个数的数据进行mini-batch学习
+import sys, os
+sys.path.append(os.pardir)
+import numpy as np
+from dataset.mnist import load_mnist
+
+(x_train, t_train), (x_test, t_test) = \
+    load_mnist(normalize=True, one_hot_label=True)  # 设定参数one_hot_label=True，可以得到one-hot表示（仅正确解标签为1，其余为0的数据结构）​
+
+print(x_train.shape)  # (60000, 784)，输入数据为28*28=784的图像数据
+print(t_train.shape)  # (60000, 10)，监督数据是10维的数据
+
+train_size = x_train.shape[0]	# (60000, 784)[0]也就是60000
+batch_size = 10
+batch_mask = np.random.choice(train_size, batch_size)   # np.random.choice(60000, 10)会从0到59999之间随机选择10个数字。
+x_batch = x_train[batch_mask]	# 从60000个图片中选出随机出来的10个图片
+t_batch = t_train[batch_mask]	# 60000中10个图片的one-hot表示
+
+# 运行np.random.choice(60000, 10)得到类似下面的结果
+>>> np.random.choice(60000, 10)
+array([ 8013, 14666, 58210, 23832, 52091, 10153, 8107, 19410, 27260,
+21411])
+~~~
+
+#### 4.2.4 mini-batch版交叉熵误差的实现
+
+~~~python
+# 可以同时处理单个数据和批量数据两种情况的函数
+def cross_entropy_error(y, t):
+    if y.ndim == 1:
+        t = t.reshape(1, t.size)
+        y = y.reshape(1, y.size)
+
+    batch_size = y.shape[0]
+    return -np.sum(t * np.log(y + 1e-7)) / batch_size
+'''
+这里，y是神经网络的输出，t是监督数据。y的维度为1时，即求单个数据的交叉熵误差时，需要改变数据的形状。并且，当输入为mini-batch时，要用batch的个数进行正规化，计算单个数据的平均交叉熵误差。
+'''
+~~~
 
