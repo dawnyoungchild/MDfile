@@ -1798,3 +1798,49 @@ $ scrapy crawl books -t excel -o books.xls
 
 ## 第8章 项目练习
 
+![image-20241018150409809](C:\Users\Dawn\AppData\Roaming\Typora\typora-user-images\image-20241018150409809.png)
+
+http://books.toscrape.com中书籍的详情页，列出了书籍的详细信息，包括
+
+● 书名 √
+
+● 价格 √
+
+● 评价等级 √
+
+● 书籍简介
+
+● 产品编码 √
+
+● 产品类型
+
+● 税价
+
+● 库存量 √
+
+● 评价数量 √
+
+我们对其中打勾的信息进行爬取
+
+### 8.1 项目需求
+
+爬取http://books.toscrape.com网站中的书籍信息。
+
+（1）其中每一本书的信息包括：
+
+➢ 书名
+
+➢ 价格
+
+➢ 评价等级
+
+➢ 产品编码
+
+➢ 库存量
+
+➢ 评价数量
+
+（2）将爬取的结果保存到csv文件中。
+
+### 8.2 页面分析
+
