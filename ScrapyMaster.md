@@ -1844,3 +1844,84 @@ http://books.toscrape.com中书籍的详情页，列出了书籍的详细信息�
 
 ### 8.2 页面分析
 
+~~~python
+# 运行scrapy shell url命令
+$ scrapy shell http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html
+    scrapy shell http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html
+        2017-03-03 09:17:01 [scrapy] INFO: Scrapy 1.3.3 started (bot: scrapybot)
+                    2017-03-03 09:17:01 [scrapy] INFO: Overridden settings: {'LOGSTATS_INTERVAL': 0,
+                                                                             'DUPEFILTER_CLASS': 'scrapy.dupefilters.BaseDupeFilter'}
+                                    2017-03-03 09:17:01 [scrapy] INFO: Enabled extensions:
+                                                    ['scrapy.extensions.corestats.CoreStats',
+                                                     'scrapy.extensions.telnet.TelnetConsole']
+                                                    2017-03-03 09:17:01 [scrapy] INFO: Enabled downloader middlewares:
+                                                                    ['scrapy.downloadermiddlewares.httpauth.HttpAuthMiddleware',
+                                                                     'scrapy.downloadermiddlewares.downloadtimeout.DownloadTimeoutMiddleware',
+                                                                     'scrapy.downloadermiddlewares.defaultheaders.DefaultHeadersMiddleware',
+                                                                     'scrapy.downloadermiddlewares.useragent.UserAgentMiddleware',
+                                                                     'scrapy.downloadermiddlewares.retry.RetryMiddleware',
+                                                                     'scrapy.downloadermiddlewares.redirect.MetaRefreshMiddleware',
+                                                                     'scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware',
+                                                                     'scrapy.downloadermiddlewares.redirect.RedirectMiddleware',
+                                                                     'scrapy.downloadermiddlewares.cookies.CookiesMiddleware',
+                                                                     'scrapy.downloadermiddlewares.chunked.ChunkedTransferMiddleware',
+                                                                     'scrapy.downloadermiddlewares.stats.DownloaderStats']
+                                                                    2017-03-03 09:17:01 [scrapy] INFO: Enabled spider middlewares:
+                                                                                    ['scrapy.spidermiddlewares.httperror.HttpErrorMiddleware',
+                                                                                     'scrapy.spidermiddlewares.offsite.OffsiteMiddleware',
+                                                                                     'scrapy.spidermiddlewares.referer.RefererMiddleware',
+                                                                                     'scrapy.spidermiddlewares.urllength.UrlLengthMiddleware',
+                                                                                     'scrapy.spidermiddlewares.depth.DepthMiddleware']
+                                                                                    2017-03-03 09:17:01 [scrapy] INFO: Enabled item pipelines:
+                                                                                                    []
+                                                                                                    2017-03-03 09:17:01 [scrapy] DEBUG: Telnet console listening on 127.0.0.1:6024
+                                                                                                                    2017-03-03 09:17:01 [scrapy] INFO: Spider opened
+                                                                                                                                2017-03-03 09:17:01 [scrapy] DEBUG: Crawled (200)  (referer: None)
+                                                                                                                                            2017-03-03 09:17:02 [traitlets] DEBUG: Using default logger
+        2017-03-03 09:17:02 [traitlets] DEBUG: Using default logger
+                    [s] Available Scrapy objects:
+                        [s]   scrapy    scrapy module (contains scrapy.Request, scrapy.Selector, etc)
+                        [s]   crawler
+                        [s]   item      {}
+                        [s]   request
+                        [s]   response   <200 http://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html>
+                            [s]   settings
+                            [s]   spider
+                            [s] Useful shortcuts:
+                                [s]   shelp()          Shell help (print this help)
+                                [s]   fetch(req_or_url) Fetch request (or URL) and update local objects
+                                [s]   view(response)   View response in a browser
+                                >>>
+~~~
+
+运行这条命令后，scrapy shell会使用url参数构造一个Request对象，并提交给Scrapy引擎，页面下载完成后，程序进入一个python shell当中，在此环境中已经创建好了一些变量（对象和函数），以下几个最为常用：
+
+- request
+
+  最近一次下载对应的Request对象。
+
+- response
+
+  最近一次下载对应的Response对象
+
+- fetch(req_or_url)
+
+  该函数用于下载页面，可传入一个Request对象或url字符串，调用后会更新变量request和response
+
+- view（response）
+
+  用于在浏览器中显示response中的页面
+
+  ~~~python
+  # 输入view函数后会调用浏览器打开url
+  >>> view(response)
+  ~~~
+
+![image-20241019171752707](https://gitee.com/fangdaxi/fangdaxi_img/raw/master/2024101917175920241019171759.png)
+
+从图中可以看出，我们可在<div class="col-sm-6product_main">中提取书名、价格、评价等级，在scrapy shell中尝试提取这些信息
+
+~~~python
+
+~~~
+
